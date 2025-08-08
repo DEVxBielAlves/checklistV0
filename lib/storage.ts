@@ -57,7 +57,12 @@ async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function listChecklists(): Promise<ChecklistStored[]> {
-  return api<ChecklistStored[]>("/api/checklists")
+  try {
+    const res = await api<any>("/api/checklists")
+    return Array.isArray(res) ? (res as ChecklistStored[]) : []
+  } catch {
+    return []
+  }
 }
 
 export async function saveChecklist(record: ChecklistStored): Promise<ChecklistStored> {

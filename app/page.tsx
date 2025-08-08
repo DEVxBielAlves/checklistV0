@@ -20,7 +20,7 @@ DropdownMenuTrigger,
 
 export default function HomePage() {
 const { toast } = useToast()
-const [items, setItems] = useState<ChecklistStored[]>([])
+const [items, setItems] = useState<ChecklistStored[] | null>(null)
 const [confirmId, setConfirmId] = useState<string | null>(null)
 const [confirmText, setConfirmText] = useState("")
 
@@ -34,6 +34,8 @@ async function refresh() {
 }
 
 useEffect(() => { refresh() }, [])
+
+const list = Array.isArray(items) ? items : []
 
 async function onDeleteConfirm() {
   if (!confirmId) return
@@ -59,7 +61,11 @@ return (
       </Link>
     </div>
 
-    {items.length === 0 ? (
+    {items === null ? (
+      <Card>
+        <CardContent className="p-4 text-sm text-zinc-600">Carregando…</CardContent>
+      </Card>
+    ) : list.length === 0 ? (
       <Card>
         <CardContent className="p-4 text-sm text-zinc-600">
           Nenhum checklist salvo. Clique em “Novo checklist” para iniciar.
@@ -67,7 +73,7 @@ return (
       </Card>
     ) : (
       <div className="space-y-3">
-        {items.map((c) => (
+        {list.map((c) => (
           <Card key={c.id}>
             <CardHeader className="p-4">
               <CardTitle className="text-base flex items-center justify-between">
