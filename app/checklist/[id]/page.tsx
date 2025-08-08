@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { downloadChecklistPdfComImagens, downloadChecklistPdfPrincipal } from "@/lib/pdf"
 import { getChecklist, type ChecklistStored } from "@/lib/storage"
-import { ArrowLeft, FileDown, Plus } from 'lucide-react'
+import { ArrowLeft, FileDown } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -237,15 +237,6 @@ export default function ChecklistDetailsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Barra de ação inferior (quase toda a largura) */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-center px-4 py-2" style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.5rem)" }}>
-          <Link href="/checklist" className="w-full">
-            <Button className="w-full h-12 text-base">+ Novo checklist</Button>
-          </Link>
-        </div>
-      </div>
     </main>
   )
 }
