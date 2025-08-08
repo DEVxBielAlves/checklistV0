@@ -1,5 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 
+const TABLE = process.env.CHECKLIST_TABLE_NAME || "checklist"
+const BUCKET = process.env.CHECKLIST_BUCKET || "checklist-images"
+
 type MediaStored = {
   nome: string
   tipo: string
@@ -111,24 +114,10 @@ function toCamelChecklist(row: ChecklistRow): ChecklistStored {
   }
 }
 
-async function resolveTableName(): Promise<"checklists" | "checklist"> {
-  const supabase = getSupabaseServerClient()
-  // tenta plural primeiro
-  const { error: errPlural } = await supabase.from("checklists").select("id").limit(1)
-  if (!errPlural) return "checklists"
-  // se a tabela plural não existe, tenta a singular
-  const { error: errSingular } = await supabase.from("checklist").select("id").limit(1)
-  if (!errSingular) return "checklist"
-  // fallback padrão (mantém o comportamento antigo)
-  return "checklists"
-}
-
 export async function GET() {
   const supabase = getSupabaseServerClient()
-  const table = await resolveTableName()
-
   const { data, error } = await supabase
-    .from(table)
+    .from(TABLE)
     .select("*")
     .order("created_at", { ascending: false })
 
@@ -139,14 +128,12 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const supabase = getSupabaseServerClient()
-  const bucket = "checklist-images"
   const body = (await req.json()) as ChecklistStored
-  const table = await resolveTableName()
 
   const id = ensureId(body.id)
   const safe: ChecklistStored = { ...body, id }
 
-  // Upload de imagens (DataURL -> Storage público)
+  // Upload media (DataURL -> Storage público)
   for (let i = 0; i < safe.inspecoes.length; i++) {
     const ins = safe.inspecoes[i]
     const newMidias: MediaStored[] = []
@@ -156,7 +143,7 @@ export async function POST(req: Request) {
         try {
           const { blob, contentType, ext } = parseDataUrlToBlob(m.dataUrl)
           const path = `${id}/${Date.now()}-${i}-${j}.${ext}`
-          const { error: upErr } = await supabase.storage.from(bucket).upload(path, blob, {
+          const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, blob, {
             contentType,
             upsert: true,
           })
@@ -164,7 +151,7 @@ export async function POST(req: Request) {
             console.error("Upload error:", upErr)
             continue
           }
-          const { data: pub } = supabase.storage.from(bucket).getPublicUrl(path)
+          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path)
           newMidias.push({ ...m, dataUrl: pub.publicUrl })
         } catch (e) {
           console.error("Upload error:", e)
@@ -176,9 +163,9 @@ export async function POST(req: Request) {
     safe.inspecoes[i] = { ...ins, midias: newMidias }
   }
 
-  // Persistência
+  // Persist
   const { data, error } = await supabase
-    .from(table)
+    .from(TABLE)
     .upsert(
       {
         id: safe.id,
@@ -192,7 +179,7 @@ export async function POST(req: Request) {
       { onConflict: "id" }
     )
     .select("*")
-  // .single() não funciona se o PostgREST não retornar exatamente 1 linha em alguns casos; data?.[0] é mais permissivo
+
   if (error || !data || data.length === 0) {
     return json({ error: error?.message || "Upsert failed" }, { status: 500 })
   }

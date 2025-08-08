@@ -1,5 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 
+const TABLE = process.env.CHECKLIST_TABLE_NAME || "checklist"
+const BUCKET = process.env.CHECKLIST_BUCKET || "checklist-images"
+
 type MediaStored = {
   nome: string
   tipo: string
@@ -57,38 +60,26 @@ function toCamelChecklist(row: ChecklistRow) {
   }
 }
 
-async function resolveTableName(): Promise<"checklists" | "checklist"> {
-  const supabase = getSupabaseServerClient()
-  const { error: errPlural } = await supabase.from("checklists").select("id").limit(1)
-  if (!errPlural) return "checklists"
-  const { error: errSingular } = await supabase.from("checklist").select("id").limit(1)
-  if (!errSingular) return "checklist"
-  return "checklists"
-}
-
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const supabase = getSupabaseServerClient()
-  const table = await resolveTableName()
   const id = params.id
-  const { data, error } = await supabase.from(table).select("*").eq("id", id).single()
+  const { data, error } = await supabase.from(TABLE).select("*").eq("id", id).single()
   if (error) return json({ error: error.message }, { status: 404 })
   return json(toCamelChecklist(data as ChecklistRow))
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const supabase = getSupabaseServerClient()
-  const table = await resolveTableName()
   const id = params.id
 
-  const { error } = await supabase.from(table).delete().eq("id", id)
+  const { error } = await supabase.from(TABLE).delete().eq("id", id)
   if (error) return json({ error: error.message }, { status: 500 })
 
-  // Limpeza best-effort de imagens
-  const bucket = "checklist-images"
-  const { data: list, error: listErr } = await supabase.storage.from(bucket).list(id)
+  // Best-effort: clean up storage folder
+  const { data: list, error: listErr } = await supabase.storage.from(BUCKET).list(id)
   if (!listErr && list && list.length > 0) {
     const paths = list.map((o) => `${id}/${o.name}`)
-    await supabase.storage.from(bucket).remove(paths)
+    await supabase.storage.from(BUCKET).remove(paths)
   }
 
   return json({ ok: true })

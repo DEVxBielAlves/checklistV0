@@ -1,5 +1,8 @@
 import { getSupabaseServerClient } from "@/lib/supabase/server"
 
+const TABLE = process.env.CHECKLIST_TABLE_NAME || "checklist"
+const BUCKET = process.env.CHECKLIST_BUCKET || "checklist-images"
+
 function json(data: any, init?: ResponseInit) {
   return new Response(JSON.stringify(data), {
     headers: { "content-type": "application/json", "cache-control": "no-store" },
@@ -10,30 +13,19 @@ function json(data: any, init?: ResponseInit) {
 export async function GET() {
   const supabase = getSupabaseServerClient()
 
-  // Detectar nome da tabela: plural vs singular
+  // Check table connectivity
   let tableExists = false
-  let tableName: "checklists" | "checklist" | null = null
-
   try {
-    const tryPlural = await supabase.from("checklists").select("id").limit(1)
-    if (!tryPlural.error) {
-      tableExists = true
-      tableName = "checklists"
-    } else {
-      const trySingular = await supabase.from("checklist").select("id").limit(1)
-      if (!trySingular.error) {
-        tableExists = true
-        tableName = "checklist"
-      }
-    }
+    const probe = await supabase.from(TABLE).select("id").limit(1)
+    tableExists = !probe.error
   } catch {
     tableExists = false
   }
 
-  // Verificar bucket (não obrigatório para leitura)
+  // Check bucket (optional for images)
   let bucketExists = false
   try {
-    const { data } = await supabase.storage.getBucket("checklist-images")
+    const { data } = await supabase.storage.getBucket(BUCKET)
     bucketExists = !!data
   } catch {
     bucketExists = false
@@ -42,10 +34,11 @@ export async function GET() {
   return json({
     ok: tableExists,
     tableExists,
-    tableName,
+    tableName: TABLE,
     bucketExists,
+    bucketName: BUCKET,
     message: tableExists
-      ? `Conectado. Usando a tabela ${tableName}.`
-      : "Tabela não encontrada. Crie 'public.checklists' (ou 'public.checklist') e rode novamente.",
+      ? `Conectado. Usando a tabela ${TABLE}.`
+      : `Tabela ${TABLE} não encontrada. Ajuste CHECKLIST_TABLE_NAME ou crie a tabela.`,
   })
 }
