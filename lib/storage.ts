@@ -1,5 +1,7 @@
 "use client"
 
+// Supabase-backed persistence. API routes perform privileged operations server-side.
+
 export type Status = "conforme" | "nao_conforme" | "na"
 
 export type Step2Entry = {
@@ -14,7 +16,7 @@ export type Step3MediaStored = {
   tipo: string
   tamanho: number
   kind: "image"
-  dataUrl: string // armazenamos como data URL para persistir localmente
+  dataUrl: string // now a PUBLIC URL after upload
 }
 
 export type Step3Entry = {
@@ -28,7 +30,7 @@ export type Step3Entry = {
 export type ChecklistStored = {
   id: string
   titulo: string
-  criadoEm: string // dd-mm-yyyy  HH:mm:ss
+  criadoEm: string
   dadosIniciais: {
     placa: string
     motorista: string
@@ -41,46 +43,41 @@ export type ChecklistStored = {
   completo: boolean
 }
 
-const KEY = "checklists_v1"
-
-function readAll(): ChecklistStored[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return []
-    const arr = JSON.parse(raw) as ChecklistStored[]
-    return Array.isArray(arr) ? arr : []
-  } catch {
-    return []
+async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, {
+    ...init,
+    headers: { "content-type": "application/json", ...(init?.headers || {}) },
+    cache: "no-store",
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err?.error || `Request failed: ${res.status}`)
   }
+  return res.json()
 }
 
-function writeAll(list: ChecklistStored[]) {
-  if (typeof window === "undefined") return
-  localStorage.setItem(KEY, JSON.stringify(list))
+export async function listChecklists(): Promise<ChecklistStored[]> {
+  return api<ChecklistStored[]>("/api/checklists")
 }
 
-export function listChecklists(): ChecklistStored[] {
-  return readAll().sort((a, b) => {
-    // ordenar por criação descendente: dd-mm-yyyy  HH:mm:ss não é ISO; vamos manter a ordem de inserção reversa
-    // Para confiabilidade, manteremos a ordem original de armazenamento (inserimos no topo ao salvar).
-    return 0
+export async function saveChecklist(record: ChecklistStored): Promise<ChecklistStored> {
+  return api<ChecklistStored>("/api/checklists", {
+    method: "POST",
+    body: JSON.stringify(record),
   })
 }
 
-export function saveChecklist(record: ChecklistStored) {
-  const list = readAll()
-  // inserir no topo
-  writeAll([record, ...list])
+export async function getChecklist(id: string): Promise<ChecklistStored | null> {
+  try {
+    return await api<ChecklistStored>(`/api/checklists/${id}`)
+  } catch {
+    return null
+  }
 }
 
-export function getChecklist(id: string): ChecklistStored | null {
-  const list = readAll()
-  return list.find((c) => c.id === id) || null
+export async function deleteChecklist(id: string) {
+  await api(`/api/checklists/${id}`, { method: "DELETE" })
 }
 
-export function deleteChecklist(id: string) {
-  const list = readAll()
-  const filtered = list.filter((c) => c.id !== id)
-  writeAll(filtered)
-}
+// Alias (some files use removeChecklist)
+export const removeChecklist = deleteChecklist
