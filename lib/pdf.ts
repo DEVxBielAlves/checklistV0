@@ -2,7 +2,6 @@
 
 import jsPDF from "jspdf"
 import type { ChecklistStored, Status } from "./storage"
-import { getChecklist } from "./storage"
 
 const PAGE = { W: 595, H: 842, M: 40, COL_GAP: 24 }
 const COL_W = (PAGE.W - PAGE.M * 2 - PAGE.COL_GAP) / 2
@@ -79,11 +78,11 @@ function vehicleInfoTwoCols(doc: jsPDF, c: ChecklistStored, startY: number) {
 
   doc.setFont("helvetica", "normal")
   doc.setFontSize(9)
-  text(doc, `Marca: ${c.dadosIniciais?.marca || "—"}`, leftX, y)
-  text(doc, `Modelo: ${c.dadosIniciais?.modelo || "—"}`, leftX, y + 12)
-  text(doc, `Placa: ${c.dadosIniciais?.placa || "—"}`, rightX, y)
-  text(doc, `Motorista: ${c.dadosIniciais?.motorista || "—"}`, rightX, y + 12)
-  text(doc, `Inspetor(a): ${c.dadosIniciais?.inspetor || "—"}`, rightX, y + 24)
+  text(doc, `Marca: ${c.dadosIniciais.marca}`, leftX, y)
+  text(doc, `Modelo: ${c.dadosIniciais.modelo}`, leftX, y + 12)
+  text(doc, `Placa: ${c.dadosIniciais.placa}`, rightX, y)
+  text(doc, `Motorista: ${c.dadosIniciais.motorista}`, rightX, y + 12)
+  text(doc, `Inspetor(a): ${c.dadosIniciais.inspetor}`, rightX, y + 24)
 
   return y + 32
 }
@@ -125,6 +124,7 @@ async function loadImageData(input: string): Promise<{ kind: "data" | "element";
   if (input.startsWith("data:")) {
     return { kind: "data", data: input }
   }
+  // Load external image as HTMLImageElement
   const img = new Image()
   img.crossOrigin = "anonymous"
   const done = new Promise<HTMLImageElement>((resolve, reject) => {
@@ -137,8 +137,8 @@ async function loadImageData(input: string): Promise<{ kind: "data" | "element";
 }
 
 /**
- * Modelo Principal: 1 página, sem fotos (gera com objeto provido).
- */
+* Modelo Principal: 1 página, sem fotos.
+*/
 export function downloadChecklistPdfPrincipal(checklist: ChecklistStored) {
   const doc = new jsPDF({ unit: "pt", format: "a4" })
   let page = 1
@@ -149,8 +149,8 @@ export function downloadChecklistPdfPrincipal(checklist: ChecklistStored) {
   y += 16
 
   const items = [
-    ...((checklist.verificacoes || []).map((v, i) => ({ idx: i + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status as Status, obs: v.observacoes })) || []),
-    ...((checklist.inspecoes || []).map((v, j) => ({ idx: (checklist.verificacoes || []).length + j + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status as Status, obs: v.observacoes })) || []),
+    ...checklist.verificacoes.map((v, i) => ({ idx: i + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status, obs: v.observacoes })),
+    ...checklist.inspecoes.map((v, j) => ({ idx: checklist.verificacoes.length + j + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status, obs: v.observacoes })),
   ]
 
   items.forEach((it) => { y = renderItemTwoCols(doc, y, it) })
@@ -166,8 +166,8 @@ export function downloadChecklistPdfPrincipal(checklist: ChecklistStored) {
 }
 
 /**
- * Secundário: com imagens, 3 colunas (gera com objeto provido).
- */
+* Secundário: com imagens, 3 colunas, suporta URLs externas ao carregar antes de desenhar.
+*/
 export async function downloadChecklistPdfComImagens(checklist: ChecklistStored) {
   const doc = new jsPDF({ unit: "pt", format: "a4" })
   let page = 1
@@ -187,12 +187,12 @@ export async function downloadChecklistPdfComImagens(checklist: ChecklistStored)
   type Item = { idx: number; titulo: string; detalhe?: string; status: Status | null; obs: string | null; images: string[] }
 
   const items: Item[] = [
-    ...((checklist.verificacoes || []).map((v, i) => ({ idx: i + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status as Status, obs: v.observacoes, images: [] })) || []),
-    ...((checklist.inspecoes || []).map((v, j) => ({
-      idx: (checklist.verificacoes || []).length + j + 1,
-      titulo: v.titulo, detalhe: v.detalhe, status: v.status as Status, obs: v.observacoes,
+    ...checklist.verificacoes.map((v, i) => ({ idx: i + 1, titulo: v.titulo, detalhe: v.detalhe, status: v.status, obs: v.observacoes, images: [] })),
+    ...checklist.inspecoes.map((v, j) => ({
+      idx: checklist.verificacoes.length + j + 1,
+      titulo: v.titulo, detalhe: v.detalhe, status: v.status, obs: v.observacoes,
       images: (v.midias || []).map((m) => m.dataUrl).filter(Boolean),
-    })) || []),
+    })),
   ]
 
   text(doc, "ETAPA 1 - Verificações Básicas", PAGE.M, y, 10, true)
@@ -252,6 +252,7 @@ export async function downloadChecklistPdfComImagens(checklist: ChecklistStored)
         }
       }
 
+      // last row space
       if (col === 0) {
         y = rowY
       } else {
@@ -263,19 +264,4 @@ export async function downloadChecklistPdfComImagens(checklist: ChecklistStored)
   }
 
   doc.save(`checklist-imagens-${checklist.id}.pdf`)
-}
-
-/**
- * Versões que BUSCAM o checklist do DB por id antes de gerar.
- */
-export async function downloadChecklistPdfPrincipalById(id: string) {
-  const c = await getChecklist(id)
-  if (!c) throw new Error("Checklist não encontrado")
-  return downloadChecklistPdfPrincipal(c)
-}
-
-export async function downloadChecklistPdfComImagensById(id: string) {
-  const c = await getChecklist(id)
-  if (!c) throw new Error("Checklist não encontrado")
-  return downloadChecklistPdfComImagens(c)
 }
