@@ -70,8 +70,6 @@ function decodeBase64ToUint8Array(b64: string) {
     for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i)
     return bytes
   } else {
-    // Node fallback if available
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const buf = Buffer.from(b64, "base64")
     return new Uint8Array(buf)
   }
@@ -103,10 +101,24 @@ function toCamelChecklist(row: ChecklistRow): ChecklistStored {
   }
 }
 
+async function resolveTableName(): Promise<"checklists" | "checklist"> {
+  const supabase = getSupabaseServerClient()
+  // tenta plural primeiro
+  const { error: errPlural } = await supabase.from("checklists").select("id").limit(1)
+  if (!errPlural) return "checklists"
+  // se a tabela plural não existe, tenta a singular
+  const { error: errSingular } = await supabase.from("checklist").select("id").limit(1)
+  if (!errSingular) return "checklist"
+  // fallback padrão (mantém o comportamento antigo)
+  return "checklists"
+}
+
 export async function GET() {
   const supabase = getSupabaseServerClient()
+  const table = await resolveTableName()
+
   const { data, error } = await supabase
-    .from("checklists")
+    .from(table)
     .select("*")
     .order("created_at", { ascending: false })
 
@@ -119,11 +131,12 @@ export async function POST(req: Request) {
   const supabase = getSupabaseServerClient()
   const bucket = "checklist-images"
   const body = (await req.json()) as ChecklistStored
+  const table = await resolveTableName()
 
   const id = ensureId(body.id)
   const safe: ChecklistStored = { ...body, id }
 
-  // Upload each dataUrl to Supabase Storage as a Blob
+  // Upload de imagens (DataURL -> Storage público)
   for (let i = 0; i < safe.inspecoes.length; i++) {
     const ins = safe.inspecoes[i]
     const newMidias: MediaStored[] = []
@@ -145,19 +158,17 @@ export async function POST(req: Request) {
           newMidias.push({ ...m, dataUrl: pub.publicUrl })
         } catch (e) {
           console.error("Upload error:", e)
-          // skip this media
         }
       } else if (m?.dataUrl) {
-        // Already a URL
         newMidias.push(m)
       }
     }
     safe.inspecoes[i] = { ...ins, midias: newMidias }
   }
 
-  // Persist using snake_case DB columns
+  // Persistência
   const { data, error } = await supabase
-    .from("checklists")
+    .from(table)
     .upsert(
       {
         id: safe.id,
@@ -171,10 +182,10 @@ export async function POST(req: Request) {
       { onConflict: "id" }
     )
     .select("*")
-    .single()
+  // .single() não funciona se o PostgREST não retornar exatamente 1 linha em alguns casos; data?.[0] é mais permissivo
+  if (error || !data || data.length === 0) {
+    return json({ error: error?.message || "Upsert failed" }, { status: 500 })
+  }
 
-  if (error) return json({ error: error.message }, { status: 500 })
-
-  // Return in camelCase
-  return json(toCamelChecklist(data as ChecklistRow))
+  return json(toCamelChecklist(data[0] as ChecklistRow))
 }

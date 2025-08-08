@@ -47,23 +47,33 @@ function toCamelChecklist(row: ChecklistRow) {
   }
 }
 
+async function resolveTableName(): Promise<"checklists" | "checklist"> {
+  const supabase = getSupabaseServerClient()
+  const { error: errPlural } = await supabase.from("checklists").select("id").limit(1)
+  if (!errPlural) return "checklists"
+  const { error: errSingular } = await supabase.from("checklist").select("id").limit(1)
+  if (!errSingular) return "checklist"
+  return "checklists"
+}
+
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const supabase = getSupabaseServerClient()
+  const table = await resolveTableName()
   const id = params.id
-  const { data, error } = await supabase.from("checklists").select("*").eq("id", id).single()
+  const { data, error } = await supabase.from(table).select("*").eq("id", id).single()
   if (error) return json({ error: error.message }, { status: 404 })
   return json(toCamelChecklist(data as ChecklistRow))
 }
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const supabase = getSupabaseServerClient()
+  const table = await resolveTableName()
   const id = params.id
 
-  // Delete DB row
-  const { error } = await supabase.from("checklists").delete().eq("id", id)
+  const { error } = await supabase.from(table).delete().eq("id", id)
   if (error) return json({ error: error.message }, { status: 500 })
 
-  // Best-effort: clean up storage folder
+  // Limpeza best-effort de imagens
   const bucket = "checklist-images"
   const { data: list, error: listErr } = await supabase.storage.from(bucket).list(id)
   if (!listErr && list && list.length > 0) {

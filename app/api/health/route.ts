@@ -10,46 +10,42 @@ function json(data: any, init?: ResponseInit) {
 export async function GET() {
   const supabase = getSupabaseServerClient()
 
-  // 1) Verifica se a tabela existe tentando selecionar 1 linha.
-  let tableExists = true
+  // Detectar nome da tabela: plural vs singular
+  let tableExists = false
+  let tableName: "checklists" | "checklist" | null = null
+
   try {
-    const { error } = await supabase.from("checklists").select("id").limit(1)
-    if (error) {
-      // Quando a tabela não existe, o PostgREST retorna erro. Marcar como inexistente.
-      tableExists = false
+    const tryPlural = await supabase.from("checklists").select("id").limit(1)
+    if (!tryPlural.error) {
+      tableExists = true
+      tableName = "checklists"
+    } else {
+      const trySingular = await supabase.from("checklist").select("id").limit(1)
+      if (!trySingular.error) {
+        tableExists = true
+        tableName = "checklist"
+      }
     }
   } catch {
     tableExists = false
   }
 
-  // 2) Verifica (e cria) o bucket checklist-images
+  // Verificar bucket (não obrigatório para leitura)
   let bucketExists = false
-  let createdBucket = false
   try {
-    // getBucket retorna { data: { id: string } | null }
     const { data } = await supabase.storage.getBucket("checklist-images")
     bucketExists = !!data
-    if (!bucketExists) {
-      const { error: createErr } = await supabase.storage.createBucket("checklist-images", {
-        public: true,
-        fileSizeLimit: "50mb",
-      })
-      if (!createErr) {
-        bucketExists = true
-        createdBucket = true
-      }
-    }
   } catch {
-    // ignora; bucketExists permanece false
+    bucketExists = false
   }
 
-  // Observação de policies: este endpoint não cria policies SQL (isso é feito via SQL Editor).
   return json({
+    ok: tableExists,
     tableExists,
+    tableName,
     bucketExists,
-    createdBucket,
-    next: tableExists
-      ? "Tabela ok. Se os uploads falharem com permissão, aplique as policies abaixo no SQL Editor."
-      : "Crie a tabela rodando o SQL abaixo no SQL Editor do Supabase.",
+    message: tableExists
+      ? `Conectado. Usando a tabela ${tableName}.`
+      : "Tabela não encontrada. Crie 'public.checklists' (ou 'public.checklist') e rode novamente.",
   })
 }
