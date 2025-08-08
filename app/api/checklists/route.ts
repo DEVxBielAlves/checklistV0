@@ -86,18 +86,28 @@ function parseDataUrlToBlob(dataUrl: string): { blob: Blob; contentType: string;
 }
 
 function toCamelChecklist(row: ChecklistRow): ChecklistStored {
+  const di =
+    row.dados_iniciais ?? {
+      placa: "",
+      motorista: "",
+      inspetor: "",
+      marca: "",
+      modelo: "",
+    }
   return {
     id: row.id,
     titulo: row.titulo,
     criadoEm: row.criado_em,
-    dadosIniciais: row.dados_iniciais,
-    verificacoes: row.verificacoes || [],
+    dadosIniciais: di,
+    verificacoes: Array.isArray(row.verificacoes) ? row.verificacoes : [],
     inspecoes:
-      (row.inspecoes || []).map((ins) => ({
-        ...ins,
-        midias: (ins.midias || []).map((m) => ({ ...m } as MediaStored)),
-      })) || [],
-    completo: row.completo,
+      Array.isArray(row.inspecoes)
+        ? row.inspecoes.map((ins) => ({
+            ...ins,
+            midias: Array.isArray(ins.midias) ? ins.midias.map((m) => ({ ...m } as MediaStored)) : [],
+          }))
+        : [],
+    completo: !!row.completo,
   }
 }
 

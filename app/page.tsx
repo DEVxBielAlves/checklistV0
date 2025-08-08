@@ -83,10 +83,10 @@ return (
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <div className="grid grid-cols-2 gap-y-1 text-xs text-zinc-700">
-                <div><span className="font-medium">Placa:</span> {c.dadosIniciais.placa}</div>
-                <div><span className="font-medium">Motorista:</span> {c.dadosIniciais.motorista}</div>
-                <div><span className="font-medium">Inspetor:</span> {c.dadosIniciais.inspetor}</div>
-                <div><span className="font-medium">Marca/Modelo:</span> {c.dadosIniciais.marca} • {c.dadosIniciais.modelo}</div>
+                <div><span className="font-medium">Placa:</span> {c.dadosIniciais?.placa ?? "—"}</div>
+                <div><span className="font-medium">Motorista:</span> {c.dadosIniciais?.motorista ?? "—"}</div>
+                <div><span className="font-medium">Inspetor:</span> {c.dadosIniciais?.inspetor ?? "—"}</div>
+                <div><span className="font-medium">Marca/Modelo:</span> {(c.dadosIniciais?.marca ?? "—")} • {(c.dadosIniciais?.modelo ?? "—")}</div>
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
