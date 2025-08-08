@@ -1,31 +1,50 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { downloadChecklistPdf } from "@/lib/pdf"
-import { deleteChecklist, getChecklist, type ChecklistStored } from "@/lib/storage"
-import { ArrowLeft, FileDown, Plus, Trash2 } from 'lucide-react'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { downloadChecklistPdf } from "@/lib/pdf";
+import {
+  deleteChecklist,
+  getChecklist,
+  type ChecklistStored,
+} from "@/lib/storage";
+import { ArrowLeft, FileDown, Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChecklistDetailsPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { toast } = useToast()
-  const id = String(params?.id || "")
-  const [item, setItem] = useState<ChecklistStored | null>(null)
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [confirmText, setConfirmText] = useState("")
+  const params = useParams();
+  const router = useRouter();
+  const { toast } = useToast();
+  const id = String(params?.id || "");
+  const [item, setItem] = useState<ChecklistStored | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
 
   useEffect(() => {
-    setItem(getChecklist(id))
-  }, [id])
+    let mounted = true;
+    (async () => {
+      const data = await getChecklist(id);
+      if (mounted) setItem(data);
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
 
   if (!item) {
     return (
@@ -35,10 +54,12 @@ export default function ChecklistDetailsPage() {
           Voltar
         </Button>
         <Card className="mt-4">
-          <CardContent className="p-4 text-sm text-zinc-600">Checklist não encontrado.</CardContent>
+          <CardContent className="p-4 text-sm text-zinc-600">
+            Checklist não encontrado.
+          </CardContent>
         </Card>
       </main>
-    )
+    );
   }
 
   return (
@@ -48,13 +69,17 @@ export default function ChecklistDetailsPage() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
-        <Badge variant={item.completo ? "default" : "secondary"}>{item.completo ? "Completo" : "Incompleto"}</Badge>
+        <Badge variant={item.completo ? "default" : "secondary"}>
+          {item.completo ? "Completo" : "Incompleto"}
+        </Badge>
       </div>
 
       <Card className="border-zinc-200">
         <CardHeader>
           <CardTitle className="text-base">Resumo do Checklist</CardTitle>
-          <div className="text-[11px] text-zinc-500">Criado em: {item.criadoEm}</div>
+          <div className="text-[11px] text-zinc-500">
+            Criado em: {item.criadoEm}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-md border">
@@ -88,16 +113,27 @@ export default function ChecklistDetailsPage() {
 
           <div className="rounded-md border">
             <div className="p-3">
-              <div className="mb-2 text-sm font-medium">Verificações (Etapa 2)</div>
+              <div className="mb-2 text-sm font-medium">
+                Verificações (Etapa 2)
+              </div>
               <div className="grid gap-2">
                 {item.verificacoes.map((q, i) => (
-                  <div key={`${q.titulo}-${i}`} className="rounded-md border p-2">
+                  <div
+                    key={`${q.titulo}-${i}`}
+                    className="rounded-md border p-2"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-sm">{q.titulo}</div>
-                        {q.detalhe && <div className="text-[11px] text-zinc-500">{q.detalhe}</div>}
+                        {q.detalhe && (
+                          <div className="text-[11px] text-zinc-500">
+                            {q.detalhe}
+                          </div>
+                        )}
                       </div>
-                      <Badge variant="secondary">{q.status ?? "Pendente"}</Badge>
+                      <Badge variant="secondary">
+                        {q.status ?? "Pendente"}
+                      </Badge>
                     </div>
                     {q.observacoes && (
                       <div className="mt-1 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
@@ -113,13 +149,20 @@ export default function ChecklistDetailsPage() {
 
           <div className="rounded-md border">
             <div className="p-3">
-              <div className="mb-2 text-sm font-medium">Inspeções (Etapa 3)</div>
+              <div className="mb-2 text-sm font-medium">
+                Inspeções (Etapa 3)
+              </div>
               <div className="grid gap-3">
                 {item.inspecoes.map((q, i) => (
-                  <div key={`${q.titulo}-${i}`} className="rounded-md border p-2">
+                  <div
+                    key={`${q.titulo}-${i}`}
+                    className="rounded-md border p-2"
+                  >
                     <div className="mb-2 flex items-center justify-between">
                       <div className="text-sm">{q.titulo}</div>
-                      <Badge variant="secondary">{q.status ?? "Pendente"}</Badge>
+                      <Badge variant="secondary">
+                        {q.status ?? "Pendente"}
+                      </Badge>
                     </div>
                     {q.observacoes && (
                       <div className="mb-2 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
@@ -130,9 +173,15 @@ export default function ChecklistDetailsPage() {
                     {q.midias.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {q.midias.map((m, idx) => (
-                          <div key={`${m.nome}-${idx}`} className="relative overflow-hidden rounded-md border">
+                          <div
+                            key={`${m.nome}-${idx}`}
+                            className="relative overflow-hidden rounded-md border"
+                          >
                             <img
-                              src={m.dataUrl || "/placeholder.svg?height=96&width=160&query=inspecao-foto"}
+                              src={
+                                m.dataUrl ||
+                                "/placeholder.svg?height=96&width=160&query=inspecao-foto"
+                              }
                               alt={m.nome}
                               className="h-24 w-full object-cover"
                               crossOrigin="anonymous"
@@ -141,7 +190,9 @@ export default function ChecklistDetailsPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-[11px] text-zinc-500">Sem fotos.</div>
+                      <div className="text-[11px] text-zinc-500">
+                        Sem fotos.
+                      </div>
                     )}
                   </div>
                 ))}
@@ -150,7 +201,10 @@ export default function ChecklistDetailsPage() {
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <Button variant="outline" onClick={() => downloadChecklistPdf(item)}>
+            <Button
+              variant="outline"
+              onClick={() => downloadChecklistPdf(item)}
+            >
               <FileDown className="mr-2 h-4 w-4" />
               Download PDF
             </Button>
@@ -166,7 +220,8 @@ export default function ChecklistDetailsPage() {
                 <DialogHeader>
                   <DialogTitle>Confirmar exclusão</DialogTitle>
                   <DialogDescription>
-                    Digite <span className="font-semibold">delete</span> para confirmar a exclusão do checklist.
+                    Digite <span className="font-semibold">delete</span> para
+                    confirmar a exclusão do checklist.
                   </DialogDescription>
                 </DialogHeader>
                 <Input
@@ -180,9 +235,9 @@ export default function ChecklistDetailsPage() {
                     variant="destructive"
                     disabled={confirmText !== "delete"}
                     onClick={() => {
-                      deleteChecklist(item.id)
-                      toast({ title: "Checklist excluído" })
-                      router.push("/")
+                      deleteChecklist(item.id);
+                      toast({ title: "Checklist excluído" });
+                      router.push("/");
                     }}
                   >
                     Confirmar exclusão
@@ -201,5 +256,5 @@ export default function ChecklistDetailsPage() {
         </Button>
       </Link>
     </main>
-  )
+  );
 }

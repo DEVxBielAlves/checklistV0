@@ -1,37 +1,77 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
-import { deleteChecklist, listChecklists, type ChecklistStored } from "@/lib/storage"
-import { downloadChecklistPdf } from "@/lib/pdf"
-import { Eye, FileDown, Plus, Trash2 } from 'lucide-react'
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import {
+  deleteChecklist,
+  listChecklists,
+  getChecklist,
+  type ChecklistStored,
+} from "@/lib/storage";
+import { downloadChecklistPdf } from "@/lib/pdf";
+import { Eye, FileDown, Plus, Trash2 } from "lucide-react";
 
 export default function HomePage() {
-  const { toast } = useToast()
-  const [items, setItems] = useState<ChecklistStored[]>([])
-  const [confirmId, setConfirmId] = useState<string | null>(null)
-  const [confirmText, setConfirmText] = useState("")
+  const { toast } = useToast();
+  const [items, setItems] = useState<ChecklistStored[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState("");
 
   useEffect(() => {
-    setItems(listChecklists())
-  }, [])
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await listChecklists();
+        if (mounted) setItems(data);
+      } catch (e) {
+        // noop (toast opcional)
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  function refresh() {
-    setItems(listChecklists())
+  async function refresh() {
+    setLoading(true);
+    try {
+      const data = await listChecklists();
+      setItems(data);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  function handleDelete(id: string) {
-    deleteChecklist(id)
-    toast({ title: "Checklist excluído" })
-    setConfirmId(null)
-    setConfirmText("")
-    refresh()
+  async function handleDelete(id: string) {
+    await deleteChecklist(id);
+    toast({ title: "Checklist excluído" });
+    setConfirmId(null);
+    setConfirmText("");
+    await refresh();
   }
 
   return (
@@ -45,7 +85,8 @@ export default function HomePage() {
         {items.length === 0 && (
           <Card>
             <CardContent className="p-4 text-sm text-zinc-600">
-              Nenhum checklist salvo ainda. Toque no botão “+” para iniciar um checklist.
+              Nenhum checklist salvo ainda. Toque no botão “+” para iniciar um
+              checklist.
             </CardContent>
           </Card>
         )}
@@ -55,9 +96,13 @@ export default function HomePage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center justify-between">
                 <span>{c.titulo}</span>
-                <Badge variant={c.completo ? "default" : "secondary"}>{c.completo ? "Completo" : "Incompleto"}</Badge>
+                <Badge variant={c.completo ? "default" : "secondary"}>
+                  {c.completo ? "Completo" : "Incompleto"}
+                </Badge>
               </CardTitle>
-              <div className="text-[11px] text-zinc-500">Criado em: {c.criadoEm}</div>
+              <div className="text-[11px] text-zinc-500">
+                Criado em: {c.criadoEm}
+              </div>
             </CardHeader>
             <CardContent className="grid gap-1 text-xs text-zinc-700">
               <div>Placa: {c.dadosIniciais.placa}</div>
@@ -88,9 +133,21 @@ export default function HomePage() {
                 </Button>
               </div>
 
-              <Dialog open={confirmId === c.id} onOpenChange={(open) => { if (!open) { setConfirmId(null); setConfirmText("") }}}>
+              <Dialog
+                open={confirmId === c.id}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    setConfirmId(null);
+                    setConfirmText("");
+                  }
+                }}
+              >
                 <DialogTrigger asChild>
-                  <Button variant="destructive" size="sm" onClick={() => setConfirmId(c.id)}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setConfirmId(c.id)}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Excluir
                   </Button>
@@ -99,7 +156,8 @@ export default function HomePage() {
                   <DialogHeader>
                     <DialogTitle>Confirmar exclusão</DialogTitle>
                     <DialogDescription>
-                      Digite <span className="font-semibold">delete</span> para confirmar a exclusão do checklist.
+                      Digite <span className="font-semibold">delete</span> para
+                      confirmar a exclusão do checklist.
                     </DialogDescription>
                   </DialogHeader>
                   <Input
@@ -131,5 +189,5 @@ export default function HomePage() {
         </Button>
       </Link>
     </main>
-  )
+  );
 }
