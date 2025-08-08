@@ -11,20 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { AlertTriangle, Camera, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, FileImage, Info, Plus, Trash2 } from 'lucide-react'
+import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ClipboardList, FileImage, Info, Plus, Trash2 } from 'lucide-react'
 import CameraCapture from "@/components/camera-capture"
 import { saveChecklist, type ChecklistStored } from "@/lib/storage"
 
@@ -180,6 +169,7 @@ export default function ChecklistPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [step, setStep] = useState<Step>(1)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Etapa 1
   const [placa, setPlaca] = useState("")
@@ -331,18 +321,30 @@ export default function ChecklistPage() {
     if (!validateChecklist()) {
       toast({
         title: "Checklist incompleto",
-        description: "Revise as etapas: N/A sem foto; Não conforme com foto e observação; Conforme com foto.",
+        description: "N/A sem foto; Não conforme com foto e observação; Conforme com foto.",
         variant: "destructive",
       })
       return
     }
     const record: ChecklistStored = { id: generateId(), ...checklistJSON } as ChecklistStored
     try {
-      await saveChecklist(record)
-      toast({ title: "Checklist salvo no histórico" })
-      router.push("/")
+      setIsSaving(true)
+      await saveChecklist(record) // envia ao /api/checklists e persiste no Supabase
+      toast({ title: "Checklist salvo com sucesso no banco de dados" })
+      // navegar após salvar
+      // aguarda a transição de rota para não perder o toast (opcional)
+      // você pode remover o setTimeout se preferir navegação imediata
+      setTimeout(() => {
+        router.push("/")
+      }, 150)
     } catch (e: any) {
-      toast({ title: "Falha ao salvar no Supabase", description: e?.message || "Tente novamente.", variant: "destructive" })
+      toast({
+        title: "Falha ao salvar no Supabase",
+        description: e?.message || "Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -700,27 +702,6 @@ export default function ChecklistPage() {
                 <p className="text-xs">Checklist incompleto. Regras: N/A sem foto; Não conforme com foto e observação; Conforme com foto.</p>
               </div>
             )}
-
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setStep(1)}>Voltar para edição</Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button className="flex-1" disabled={!validateChecklist()}>
-                    <CheckCircle2 className="mr-2 h-4 w-4" /> Concluir e salvar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmar conclusão</AlertDialogTitle>
-                    <AlertDialogDescription>Deseja finalizar e salvar localmente? Você será redirecionado para a página inicial.</AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={concluirChecklist}>Finalizar</AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
           </CardContent>
         </Card>
       )}
@@ -735,18 +716,16 @@ export default function ChecklistPage() {
               <Badge variant="secondary" className="text-[11px]">{createdAt || "—"}</Badge>
             </div>
             {step < 4 ? (
-              <Button onClick={handleNext}>Avançar <ChevronRight className="ml-2 h-4 w-4" /></Button>
+              <Button onClick={handleNext}>
+                Avançar <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
             ) : (
               <Button
-                onClick={() => {
-                  if (!validateChecklist()) {
-                    toast({ title: "Checklist incompleto", description: "N/A sem foto; Não conforme com foto e observação; Conforme com foto.", variant: "destructive" })
-                    return
-                  }
-                  concluirChecklist()
-                }}
+                onClick={concluirChecklist}
+                disabled={!validateChecklist() || isSaving}
               >
-                <Check className="mr-2 h-4 w-4" /> Enviar
+                <Check className="mr-2 h-4 w-4" />
+                {isSaving ? "Salvando..." : "Salvar e finalizar"}
               </Button>
             )}
           </div>
