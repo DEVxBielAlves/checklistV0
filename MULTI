@@ -1,0 +1,135 @@
+// app/page.tsx
+import React from 'react';
+import { Card, CardContent } from '@mui/material';
+
+interface Checklist {
+  dadosIniciais: {
+    placa: string;
+    motorista: string;
+    inspetor: string;
+    marca: string;
+    modelo: string;
+  };
+}
+
+const Page: React.FC = () => {
+  const checklists: Checklist[] = [
+    // Sample data
+    {
+      dadosIniciais: {
+        placa: "ABC123",
+        motorista: "John Doe",
+        inspetor: "Jane Smith",
+        marca: "Toyota",
+        modelo: "Corolla",
+      },
+    },
+    {
+      dadosIniciais: null,
+    },
+  ];
+
+  return (
+    <div>
+      {checklists.map((c, index) => (
+        <Card key={index}>
+          <CardContent className="p-4 pt-0">
+            const di = c.dadosIniciais ?? { placa: "", motorista: "", inspetor: "", marca: "", modelo: "" }
+            <div className="grid grid-cols-2 gap-y-1 text-xs text-zinc-700">
+              <div><span className="font-medium">Placa:</span> {di.placa || "—"}</div>
+              <div><span className="font-medium">Motorista:</span> {di.motorista || "—"}</div>
+              <div><span className="font-medium">Inspetor:</span> {di.inspetor || "—"}</div>
+              <div><span className="font-medium">Marca/Modelo:</span> {(di.marca || "—")} • {(di.modelo || "—")}</div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
+export default Page;
+
+// app/api/checklists/route.ts
+interface ChecklistRow {
+  id: string;
+  titulo?: string;
+  criado_em: string;
+  dados_iniciais?: {
+    placa: string;
+    motorista: string;
+    inspetor: string;
+    marca: string;
+    modelo: string;
+  };
+  verificacoes?: any[];
+  inspecoes?: any[];
+  completo?: boolean;
+}
+
+interface ChecklistStored {
+  id: string;
+  titulo: string;
+  criadoEm: string;
+  dadosIniciais: {
+    placa: string;
+    motorista: string;
+    inspetor: string;
+    marca: string;
+    modelo: string;
+  };
+  verificacoes: any[];
+  inspecoes: any[];
+  completo: boolean;
+}
+
+interface MediaStored {
+  // Define MediaStored properties here
+}
+
+function toCamelChecklist(row: ChecklistRow): ChecklistStored {
+  const di = row.dados_iniciais ?? {
+    placa: "",
+    motorista: "",
+    inspetor: "",
+    marca: "",
+    modelo: "",
+  };
+  return {
+    id: row.id,
+    titulo: row.titulo ?? "Checklist",
+    criadoEm: row.criado_em,
+    dadosIniciais: di,
+    verificacoes: row.verificacoes || [],
+    inspecoes:
+      (row.inspecoes || []).map((ins) => ({
+        ...ins,
+        midias: (ins.midias || []).map((m) => ({ ...m } as MediaStored)),
+      })) || [],
+    completo: row.completo ?? false,
+  };
+}
+
+// app/api/checklists/[id]/route.ts
+function toCamelChecklist(row: ChecklistRow) {
+  const di = row.dados_iniciais ?? {
+    placa: "",
+    motorista: "",
+    inspetor: "",
+    marca: "",
+    modelo: "",
+  };
+  return {
+    id: row.id,
+    titulo: row.titulo ?? "Checklist",
+    criadoEm: row.criado_em,
+    dadosIniciais: di,
+    verificacoes: row.verificacoes || [],
+    inspecoes:
+      (row.inspecoes || []).map((ins) => ({
+        ...ins,
+        midias: (ins.midias || []).map((m) => ({ ...m })),
+      })) || [],
+    completo: row.completo ?? false,
+  };
+}
