@@ -37,6 +37,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -74,37 +75,51 @@ export default function HomePage() {
     await refresh();
   }
 
+  const filtered = items.filter(
+    (c) =>
+      c.dadosIniciais.motorista.toLowerCase().includes(query.toLowerCase()) ||
+      c.dadosIniciais.inspetor.toLowerCase().includes(query.toLowerCase()) ||
+      c.dadosIniciais.placa.toLowerCase().includes(query.toLowerCase()) ||
+      c.titulo.toLowerCase().includes(query.toLowerCase())
+  );
+
   return (
-    <main className="mx-auto w-full max-w-3xl p-4">
+    <main className="mx-auto w-full max-w-[680px] p-3 sm:p-4">
       <header className="mb-4">
-        <h1 className="text-xl font-semibold">Checklist Basel</h1>
+        <h1 className="text-lg sm:text-xl font-semibold">Checklist Basel</h1>
         <p className="text-xs text-zinc-500">Histórico de checklists</p>
+        <div className="mt-2">
+          <Input
+            placeholder="Buscar por placa, motorista, inspetor ou título"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
       </header>
 
       <div className="grid gap-3">
-        {items.length === 0 && (
+        {filtered.length === 0 && (
           <Card>
             <CardContent className="p-4 text-sm text-zinc-600">
-              Nenhum checklist salvo ainda. Toque no botão “+” para iniciar um
-              checklist.
+              Nenhum checklist encontrado.
             </CardContent>
           </Card>
         )}
 
-        {items.map((c) => (
-          <Card key={c.id} className="border-zinc-200">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center justify-between">
+        {filtered.map((c) => (
+          <Card key={c.id} className="border-zinc-200 rounded-lg">
+            <CardHeader className="pb-1 px-4 sm:px-6">
+              <CardTitle className="text-sm sm:text-base flex items-center justify-between">
                 <span>{c.titulo}</span>
                 <Badge variant={c.completo ? "default" : "secondary"}>
                   {c.completo ? "Completo" : "Incompleto"}
                 </Badge>
               </CardTitle>
-              <div className="text-[11px] text-zinc-500">
+              <div className="text-[10px] sm:text-[11px] text-zinc-500">
                 Criado em: {c.criadoEm}
               </div>
             </CardHeader>
-            <CardContent className="grid gap-1 text-xs text-zinc-700">
+            <CardContent className="grid gap-1 text-[11px] sm:text-xs text-zinc-700 px-4 sm:px-6">
               <div>Placa: {c.dadosIniciais.placa}</div>
               <div className="grid grid-cols-2 gap-2">
                 <div>Motorista: {c.dadosIniciais.motorista}</div>
@@ -115,7 +130,7 @@ export default function HomePage() {
                 <div>Modelo: {c.dadosIniciais.modelo}</div>
               </div>
             </CardContent>
-            <CardFooter className="flex items-center justify-between gap-2">
+            <CardFooter className="flex items-center justify-between gap-2 px-4 sm:px-6">
               <div className="flex gap-2">
                 <Link href={`/checklist/${c.id}`} className="inline-flex">
                   <Button variant="outline" size="sm">
@@ -126,7 +141,10 @@ export default function HomePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => downloadChecklistPdf(c)}
+                  onClick={async () => {
+                    const full = await getChecklist(c.id);
+                    if (full) downloadChecklistPdf(full);
+                  }}
                 >
                   <FileDown className="mr-2 h-4 w-4" />
                   Download PDF
@@ -182,12 +200,15 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Botão flutuante para novo checklist */}
-      <Link href="/checklist" className="fixed bottom-4 right-4">
-        <Button className="rounded-full h-12 w-12 p-0 shadow-lg">
-          <Plus className="h-6 w-6" />
-        </Button>
-      </Link>
+      {/* Ação principal em barra */}
+      <div className="fixed inset-x-3 bottom-3">
+        <Link href="/checklist" className="block">
+          <Button className="w-full h-12 rounded-lg shadow-lg">
+            <Plus className="mr-2 h-5 w-5" />
+            Novo checklist
+          </Button>
+        </Link>
+      </div>
     </main>
   );
 }

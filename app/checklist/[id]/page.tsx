@@ -26,6 +26,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
+const statusBadge = (
+  s: "conforme" | "nao_conforme" | "na" | null | undefined
+) => {
+  if (!s) return <Badge variant="outline">Pendente</Badge>;
+  if (s === "conforme")
+    return (
+      <Badge className="bg-emerald-600 hover:bg-emerald-600">Conforme</Badge>
+    );
+  if (s === "nao_conforme")
+    return (
+      <Badge className="bg-rose-600 hover:bg-rose-600">Não conforme</Badge>
+    );
+  return <Badge className="bg-amber-500 hover:bg-amber-500">N/A</Badge>;
+};
+
 export default function ChecklistDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -131,9 +146,7 @@ export default function ChecklistDetailsPage() {
                           </div>
                         )}
                       </div>
-                      <Badge variant="secondary">
-                        {q.status ?? "Pendente"}
-                      </Badge>
+                      {statusBadge(q.status as any)}
                     </div>
                     {q.observacoes && (
                       <div className="mt-1 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
@@ -160,9 +173,7 @@ export default function ChecklistDetailsPage() {
                   >
                     <div className="mb-2 flex items-center justify-between">
                       <div className="text-sm">{q.titulo}</div>
-                      <Badge variant="secondary">
-                        {q.status ?? "Pendente"}
-                      </Badge>
+                      {statusBadge(q.status as any)}
                     </div>
                     {q.observacoes && (
                       <div className="mb-2 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
@@ -249,12 +260,15 @@ export default function ChecklistDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Botão flutuante para novo checklist */}
-      <Link href="/checklist" className="fixed bottom-4 right-4">
-        <Button className="rounded-full h-12 w-12 p-0 shadow-lg">
-          <Plus className="h-6 w-6" />
-        </Button>
-      </Link>
+      {/* Ação principal em barra */}
+      <div className="fixed inset-x-3 bottom-3">
+        <Link href="/checklist" className="block">
+          <Button className="w-full h-12 rounded-lg shadow-lg">
+            <Plus className="mr-2 h-5 w-5" />
+            Novo checklist
+          </Button>
+        </Link>
+      </div>
     </main>
   );
 }

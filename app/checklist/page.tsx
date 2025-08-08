@@ -352,11 +352,11 @@ export default function ChecklistPage() {
       });
       return;
     }
-    setStep((s) => Math.min((s + 1) as Step, 4));
+    setStep((s) => Math.min(s + 1, 4) as Step);
   }
 
   function handleBack() {
-    setStep((s) => Math.max((s - 1) as Step, 1));
+    setStep((s) => Math.max(s - 1, 1) as Step);
   }
 
   function blobToFile(blob: Blob, filename: string): File {
@@ -1038,15 +1038,7 @@ export default function ChecklistPage() {
         </div>
       </div>
 
-      {/* Botão flutuante para voltar à Home */}
-      <Link href="/" className="fixed bottom-4 right-4">
-        <Button
-          variant="outline"
-          className="rounded-full h-12 w-12 p-0 shadow-lg"
-        >
-          <Plus className="h-6 w-6 rotate-45" />
-        </Button>
-      </Link>
+      {/* sem botão de barra nesta página */}
     </main>
   );
 }
