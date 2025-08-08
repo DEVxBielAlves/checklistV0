@@ -6,9 +6,9 @@ import { useParams, useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { downloadChecklistPdfComImagens, downloadChecklistPdfPrincipal } from "@/lib/pdf"
+import { downloadChecklistPdfComImagensById, downloadChecklistPdfPrincipalById } from "@/lib/pdf"
 import { getChecklist, type ChecklistStored } from "@/lib/storage"
-import { ArrowLeft, FileDown, FileImage, Plus } from 'lucide-react'
+import { ArrowLeft, FileDown, Plus } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,13 @@ const StatusChip = ({ status }: { status: "conforme" | "nao_conforme" | "na" | n
   if (status === "na") return <span className={`${base} text-amber-700 border-amber-200 bg-amber-50`}>N/A</span>;
   return <span className={`${base} text-zinc-600 border-zinc-200 bg-zinc-50`}>Pendente</span>;
 };
+
+function tintClasses(status: "conforme" | "nao_conforme" | "na" | null) {
+  if (status === "conforme") return "border-emerald-200 bg-emerald-50/60"
+  if (status === "nao_conforme") return "border-rose-200 bg-rose-50/60"
+  if (status === "na") return "border-amber-200 bg-amber-50/60"
+  return "border-zinc-200 bg-white"
+}
 
 export default function ChecklistDetailsPage() {
   const params = useParams()
@@ -85,21 +92,21 @@ export default function ChecklistDetailsPage() {
       </div>
 
       <Card className="border-zinc-200">
-        <CardHeader>
+        <CardHeader className="p-3">
           <CardTitle className="text-base">Resumo do Checklist</CardTitle>
           <div className="text-[11px] text-zinc-500">Criado em: {item.criadoEm}</div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-3">
           <div className="rounded-md border">
             <div className="p-3 grid gap-2 text-xs text-zinc-700">
-              <div><span className="font-medium">Placa: </span><span>{item.dadosIniciais.placa}</span></div>
+              <div><span className="font-medium">Placa: </span><span>{item.dadosIniciais?.placa || "—"}</span></div>
               <div className="grid grid-cols-2 gap-2">
-                <div><span className="font-medium">Motorista: </span><span>{item.dadosIniciais.motorista}</span></div>
-                <div><span className="font-medium">Inspetor: </span><span>{item.dadosIniciais.inspetor}</span></div>
+                <div><span className="font-medium">Motorista: </span><span>{item.dadosIniciais?.motorista || "—"}</span></div>
+                <div><span className="font-medium">Inspetor: </span><span>{item.dadosIniciais?.inspetor || "—"}</span></div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div><span className="font-medium">Marca: </span><span>{item.dadosIniciais.marca}</span></div>
-                <div><span className="font-medium">Modelo: </span><span>{item.dadosIniciais.modelo}</span></div>
+                <div><span className="font-medium">Marca: </span><span>{item.dadosIniciais?.marca || "—"}</span></div>
+                <div><span className="font-medium">Modelo: </span><span>{item.dadosIniciais?.modelo || "—"}</span></div>
               </div>
             </div>
           </div>
@@ -108,17 +115,17 @@ export default function ChecklistDetailsPage() {
             <div className="p-3">
               <div className="mb-2 text-sm font-medium">Verificações (Etapa 2)</div>
               <div className="grid gap-2">
-                {item.verificacoes.map((q, i) => (
-                  <div key={`${q.titulo}-${i}`} className="rounded-md border p-2">
+                {(item.verificacoes || []).map((q, i) => (
+                  <div key={`${q.titulo}-${i}`} className={`rounded-md border p-2 ${tintClasses(q.status as any)}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="text-sm">{q.titulo}</div>
-                        {q.detalhe && <div className="text-[11px] text-zinc-500">{q.detalhe}</div>}
+                        {q.detalhe && <div className="text-[11px] text-zinc-600">{q.detalhe}</div>}
                       </div>
                       <StatusChip status={q.status as any} />
                     </div>
                     {q.observacoes && (
-                      <div className="mt-1 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                      <div className="mt-1 rounded bg-white/70 p-2 text-[11px] text-zinc-700">
                         <span className="font-medium">Obs.: </span>
                         {q.observacoes}
                       </div>
@@ -133,19 +140,19 @@ export default function ChecklistDetailsPage() {
             <div className="p-3">
               <div className="mb-2 text-sm font-medium">Inspeções (Etapa 3)</div>
               <div className="grid gap-3">
-                {item.inspecoes.map((q, i) => (
-                  <div key={`${q.titulo}-${i}`} className="rounded-md border p-2">
+                {(item.inspecoes || []).map((q, i) => (
+                  <div key={`${q.titulo}-${i}`} className={`rounded-md border p-2 ${tintClasses(q.status as any)}`}>
                     <div className="mb-2 flex items-center justify-between">
                       <div className="text-sm">{q.titulo}</div>
                       <StatusChip status={q.status as any} />
                     </div>
                     {q.observacoes && (
-                      <div className="mb-2 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
+                      <div className="mb-2 rounded bg-white/70 p-2 text-[11px] text-zinc-700">
                         <span className="font-medium">Obs.: </span>
                         {q.observacoes}
                       </div>
                     )}
-                    {q.midias.length > 0 ? (
+                    {q.midias?.length > 0 ? (
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {q.midias.map((m, idx) => (
                           <div key={`${m.nome}-${idx}`} className="relative overflow-hidden rounded-md border">
@@ -177,18 +184,18 @@ export default function ChecklistDetailsPage() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
                 <DropdownMenuLabel>Modelos</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => downloadChecklistPdfPrincipal(item)}>Principal (sem fotos)</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => downloadChecklistPdfComImagens(item)}>Secundário (com imagens)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadChecklistPdfPrincipalById(item.id)}>Principal (sem fotos)</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => downloadChecklistPdfComImagensById(item.id)}>Secundário (com imagens)</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </CardContent>
       </Card>
 
-      {/* Botão flutuante para novo checklist */}
-      <Link href="/checklist" className="fixed right-4" style={{ bottom: "max(env(safe-area-inset-bottom), 1rem)" }}>
-        <Button className="rounded-full h-12 w-12 p-0 shadow-lg">
-          <Plus className="h-6 w-6" />
+      {/* Removi o botão flutuante circular aqui para reduzir clutter; a navegação principal já volta/abre novo pela Home */}
+      <Link href="/" className="fixed right-4" style={{ bottom: "max(env(safe-area-inset-bottom), 1rem)" }}>
+        <Button variant="outline" className="rounded-full h-10 w-10 p-0 shadow-lg">
+          <ArrowLeft className="h-5 w-5" />
         </Button>
       </Link>
     </main>

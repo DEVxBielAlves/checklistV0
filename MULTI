@@ -1,9 +1,6 @@
 // app/page.tsx
 import React from 'react';
 import { Card, CardContent } from '@mui/material';
-import Link from 'next/link';
-import Button from '@mui/material/Button';
-import Plus from './Plus'; // Assuming Plus is imported from here
 
 interface Checklist {
   dadosIniciais: {
@@ -36,11 +33,11 @@ const Page: React.FC = () => {
     <div>
       {checklists.map((c, index) => (
         <Card key={index}>
-          <CardContent className="p-3 pt-0">
+          <CardContent className="p-4 pt-0">
             {(() => {
               const di = c.dadosIniciais ?? { placa: "", motorista: "", inspetor: "", marca: "", modelo: "" }
               return (
-                <div className="grid grid-cols-2 gap-y-1 text-xs text-zinc-700 break-words">
+                <div className="grid grid-cols-2 gap-y-1 text-xs text-zinc-700">
                   <div><span className="font-medium">Placa:</span> {di.placa || "—"}</div>
                   <div><span className="font-medium">Motorista:</span> {di.motorista || "—"}</div>
                   <div><span className="font-medium">Inspetor:</span> {di.inspetor || "—"}</div>
@@ -51,17 +48,6 @@ const Page: React.FC = () => {
           </CardContent>
         </Card>
       ))}
-      {/* CTA inferior (quase largura total) */}
-      <div className="fixed left-0 right-0" style={{ bottom: "max(env(safe-area-inset-bottom), 0.75rem)" }}>
-        <div className="mx-auto max-w-3xl px-4">
-          <Link href="/checklist" className="block">
-            <Button className="h-12 w-full rounded-xl shadow-lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Iniciar novo checklist
-            </Button>
-          </Link>
-        </div>
-      </div>
     </div>
   );
 };
@@ -151,103 +137,3 @@ function toCamelChecklist(row: ChecklistRow) {
     completo: row.completo,
   };
 }
-
-// app/checklist/[id]/page.tsx
-import React from 'react';
-import { Card, CardContent } from '@mui/material';
-import Link from 'next/link';
-import Button from '@mui/material/Button';
-import Plus from './Plus'; // Assuming Plus is imported from here
-
-const boxTone = (status: "conforme" | "nao_conforme" | "na" | null) => {
-  if (status === "conforme") return "border-emerald-200 bg-emerald-50/60";
-  if (status === "nao_conforme") return "border-rose-200 bg-rose-50/60";
-  if (status === "na") return "border-amber-200 bg-amber-50/60";
-  return "border-zinc-200 bg-white";
-};
-
-interface Checklist {
-  id: string;
-  titulo: string;
-  criadoEm: string;
-  dadosIniciais: {
-    placa: string;
-    motorista: string;
-    inspetor: string;
-    marca: string;
-    modelo: string;
-  };
-  verificacoes: any[];
-  inspecoes: any[];
-  completo: boolean;
-}
-
-const ChecklistPage: React.FC<{ params: { id: string } }> = ({ params }) => {
-  const checklist: Checklist = {
-    id: params.id,
-    titulo: "Sample Checklist",
-    criadoEm: "2023-10-01",
-    dadosIniciais: {
-      placa: "XYZ789",
-      motorista: "Alice Johnson",
-      inspetor: "Bob Brown",
-      marca: "Honda",
-      modelo: "Civic",
-    },
-    verificacoes: [
-      { titulo: "Verification 1", status: "conforme" },
-      { titulo: "Verification 2", status: "nao_conforme" },
-    ],
-    inspecoes: [
-      { titulo: "Inspection 1", status: "na" },
-      { titulo: "Inspection 2", status: null },
-    ],
-    completo: false,
-  };
-
-  return (
-    <div>
-      <Card>
-        <CardContent className="p-3 pt-0">
-          <div className="grid grid-cols-2 gap-y-1 text-xs text-zinc-700 break-words">
-            <div><span className="font-medium">Placa:</span> {checklist.dadosIniciais.placa || "—"}</div>
-            <div><span className="font-medium">Motorista:</span> {checklist.dadosIniciais.motorista || "—"}</div>
-            <div><span className="font-medium">Inspetor:</span> {checklist.dadosIniciais.inspetor || "—"}</div>
-            <div><span className="font-medium">Marca/Modelo:</span> {(checklist.dadosIniciais.marca || "—")} • {(checklist.dadosIniciais.modelo || "—")}</div>
-          </div>
-        </CardContent>
-      </Card>
-      <div className="mt-4">
-        <h2 className="text-lg font-medium">Verificações (Etapa 2)</h2>
-        {checklist.verificacoes.map((q, i) => (
-          <div key={`${q.titulo}-${i}`} className={`rounded-md border p-2 ${boxTone(q.status as any)}`}>
-            <div className="font-medium">{q.titulo}</div>
-            <div>Status: {q.status || "—"}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-4">
-        <h2 className="text-lg font-medium">Inspeções (Etapa 3)</h2>
-        {checklist.inspecoes.map((q, i) => (
-          <div key={`${q.titulo}-${i}`} className={`rounded-md border p-2 ${boxTone(q.status as any)}`}>
-            <div className="font-medium">{q.titulo}</div>
-            <div>Status: {q.status || "—"}</div>
-          </div>
-        ))}
-      </div>
-      {/* CTA inferior (quase largura total) */}
-      <div className="fixed left-0 right-0" style={{ bottom: "max(env(safe-area-inset-bottom), 0.75rem)" }}>
-        <div className="mx-auto max-w-3xl px-4">
-          <Link href="/checklist" className="block">
-            <Button className="h-12 w-full rounded-xl shadow-lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Novo checklist
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ChecklistPage;
