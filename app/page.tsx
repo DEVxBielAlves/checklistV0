@@ -84,7 +84,7 @@ export default function HomePage() {
   );
 
   return (
-    <main className="mx-auto w-full max-w-[680px] p-3 sm:p-4">
+    <main className="mx-auto w-full max-w-[680px] p-3 sm:p-4 overflow-x-hidden">
       <header className="mb-4">
         <h1 className="text-lg sm:text-xl font-semibold">Checklist Basel</h1>
         <p className="text-xs text-zinc-500">Histórico de checklists</p>
@@ -107,10 +107,13 @@ export default function HomePage() {
         )}
 
         {filtered.map((c) => (
-          <Card key={c.id} className="border-zinc-200 rounded-lg">
+          <Card
+            key={c.id}
+            className="border-zinc-200 rounded-lg overflow-x-hidden"
+          >
             <CardHeader className="pb-1 px-4 sm:px-6">
-              <CardTitle className="text-sm sm:text-base flex items-center justify-between">
-                <span>{c.titulo}</span>
+              <CardTitle className="text-sm sm:text-base flex items-center justify-between gap-2 min-w-0">
+                <span className="truncate">{c.titulo}</span>
                 <Badge variant={c.completo ? "default" : "secondary"}>
                   {c.completo ? "Completo" : "Incompleto"}
                 </Badge>
@@ -130,11 +133,11 @@ export default function HomePage() {
                 <div>Modelo: {c.dadosIniciais.modelo}</div>
               </div>
             </CardContent>
-            <CardFooter className="flex items-center justify-between gap-2 px-4 sm:px-6">
+            <CardFooter className="flex items-center justify-between gap-2 px-3 sm:px-4">
               <div className="flex gap-2">
                 <Link href={`/checklist/${c.id}`} className="inline-flex">
                   <Button variant="outline" size="sm">
-                    <Eye className="mr-2 h-4 w-4" />
+                    <Eye className="mr-1 h-4 w-4" />
                     Ver mais
                   </Button>
                 </Link>
@@ -146,7 +149,7 @@ export default function HomePage() {
                     if (full) downloadChecklistPdf(full);
                   }}
                 >
-                  <FileDown className="mr-2 h-4 w-4" />
+                  <FileDown className="mr-1 h-4 w-4" />
                   Download PDF
                 </Button>
               </div>
@@ -166,7 +169,7 @@ export default function HomePage() {
                     size="sm"
                     onClick={() => setConfirmId(c.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash2 className="mr-1 h-4 w-4" />
                     Excluir
                   </Button>
                 </DialogTrigger>

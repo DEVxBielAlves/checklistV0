@@ -16,3 +16,4 @@ export function getSupabaseClient(): SupabaseClient {
   browserClient = createClient(url, anonKey);
   return browserClient;
 }
+
