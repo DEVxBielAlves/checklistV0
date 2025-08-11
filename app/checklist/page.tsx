@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -8,12 +10,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { AlertTriangle, Camera, Check, ChevronLeft, ChevronRight, ClipboardList, FileImage, Info, Plus, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Camera,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  FileImage,
+  Info,
+  Plus,
+  Trash2,
+} from "lucide-react"
 import CameraCapture from "@/components/camera-capture"
 import { saveChecklist, type ChecklistStored } from "@/lib/storage"
 
@@ -26,35 +38,28 @@ type Step3Item = { titulo: string; detalhe?: string }
 type MediaItem = { id: string; file: File; url: string; kind: "image"; dataUrl: string }
 type Step3Answer = { status: Status | null; observacoes: string; midias: MediaItem[] }
 
-const MARCAS = [
-  { value: "SC", label: "SC (Scania)" },
-  { value: "MBB", label: "MBB (Mercedes)" },
-  { value: "VW", label: "VW (Volkswagen)" },
-  { value: "IV", label: "IV (Iveco)" },
-] as const
-
-const MODELOS = [
-  { value: "Truck", label: "Truck" },
-  { value: "Carreta", label: "Carreta" },
-] as const
-
-const STEP2_QUESTOES: Step2Item[] = [
-  { titulo: "Luzes e Sinalização", detalhe: "Funcionamento de lanternas de freio, ré, faróis e setas" },
-  { titulo: "Sirene de Ré", detalhe: "Verificação do funcionamento da sirene" },
-  { titulo: "Buzina e Pisca-Alerta", detalhe: "Teste de funcionamento de buzina e pisca-alerta" },
-  { titulo: "Vazamentos", detalhe: "Verificação de ausência de vazamento de óleo" },
-  { titulo: "EPIs", detalhe: "Confirmação do uso obrigatório dos equipamentos de proteção" },
-  { titulo: "Borracha na coluna", detalhe: "Avaliação das condições gerais das borrachas nas colunas" },
-  { titulo: "Fitas (Rabicho)", detalhe: "Inspeção do estado das fitas de amarração" },
-  { titulo: "Cintas e Catracas", detalhe: "Verificação de cintas e catracas (fixa e móvel)" },
-  { titulo: "Faixas Reflexivas", detalhe: "Avaliação das condições das faixas reflexivas" },
+const SECAO_FRONTAL: Step2Item[] = [
+  { titulo: "Dianteiro amassado", detalhe: "Verificação de danos na parte dianteira do veículo" },
+  { titulo: "Levanta fio", detalhe: "Inspeção do sistema levanta fio" },
+  { titulo: "Frontal da carreta amassada", detalhe: "Verificação de danos na parte frontal da carreta" },
 ]
 
+const SECAO_TRASEIRA: Step2Item[] = [
+  { titulo: "Lanternas queimadas", detalhe: "Verificação de lanternas queimadas" },
+  { titulo: "Lanternas quebradas", detalhe: "Inspeção de lanternas quebradas ou danificadas" },
+  { titulo: "Batente de porta em boas condições", detalhe: "Verificação do estado dos batentes das portas" },
+  {
+    titulo: "Faixa refletiva do para-choque em boas condições",
+    detalhe: "Inspeção das faixas refletivas do para-choque",
+  },
+  { titulo: "Traseira amassada", detalhe: "Verificação de danos na parte traseira" },
+]
+
+const STEP2_QUESTOES: Step2Item[] = [...SECAO_FRONTAL, ...SECAO_TRASEIRA]
+
 const STEP3_INSPECOES: Step3Item[] = [
-  { titulo: "Inspeção dos Pneus", detalhe: "Verificação visual completa com documentação" },
-  { titulo: "Inspeção do Assoalho", detalhe: "Verificação visual detalhada com mídia" },
-  { titulo: "Inspeção das Lonas", detalhe: "Verificação bilateral das lonas" },
-  { titulo: "Inspeção do Teto", detalhe: "Avaliação completa das condições do teto" },
+  { titulo: "Foto Seção Frontal", detalhe: "Documentação fotográfica obrigatória da seção frontal" },
+  { titulo: "Foto Seção Traseira", detalhe: "Documentação fotográfica obrigatória da seção traseira" },
 ]
 
 function formatDateDDMMYYYY(date: Date): string {
@@ -97,7 +102,7 @@ function StatusButtons({
           base,
           value === "conforme"
             ? "bg-emerald-500/20 text-emerald-900 ring-emerald-400 border-emerald-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,.2)]"
-            : "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 border-emerald-500/20"
+            : "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-700 border-emerald-500/20",
         )}
       >
         Conforme
@@ -110,7 +115,7 @@ function StatusButtons({
           base,
           value === "nao_conforme"
             ? "bg-rose-500/20 text-rose-900 ring-rose-400 border-rose-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,.2)]"
-            : "bg-rose-500/10 hover:bg-rose-500/15 text-rose-700 border-rose-500/20"
+            : "bg-rose-500/10 hover:bg-rose-500/15 text-rose-700 border-rose-500/20",
         )}
       >
         Não conforme
@@ -123,7 +128,7 @@ function StatusButtons({
           base,
           value === "na"
             ? "bg-amber-500/20 text-amber-900 ring-amber-400 border-amber-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,.2)]"
-            : "bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 border-amber-500/20"
+            : "bg-amber-500/10 hover:bg-amber-500/15 text-amber-700 border-amber-500/20",
         )}
       >
         N/A
@@ -175,8 +180,7 @@ export default function ChecklistPage() {
   const [placa, setPlaca] = useState("")
   const [motorista, setMotorista] = useState("")
   const [inspetor, setInspetor] = useState("")
-  const [marca, setMarca] = useState<string>("")
-  const [modelo, setModelo] = useState<string>("")
+  const [quilometragem, setQuilometragem] = useState("")
   const [createdAt, setCreatedAt] = useState<string>("")
   const createdRef = useRef<Date | null>(null)
 
@@ -191,7 +195,9 @@ export default function ChecklistPage() {
   const [step2, setStep2] = useState<Step2Answer[]>(STEP2_QUESTOES.map(() => ({ status: null, observacoes: "" })))
 
   // Etapa 3
-  const [step3, setStep3] = useState<Step3Answer[]>(STEP3_INSPECOES.map(() => ({ status: null, observacoes: "", midias: [] })))
+  const [step3, setStep3] = useState<Step3Answer[]>(
+    STEP3_INSPECOES.map(() => ({ status: null, observacoes: "", midias: [] })),
+  )
 
   const s2Refs = useRef<Array<HTMLDivElement | null>>([])
   const s3Refs = useRef<Array<HTMLDivElement | null>>([])
@@ -226,7 +232,7 @@ export default function ChecklistPage() {
   const overallProgress = Math.round((answeredCount / totalItems) * 100)
 
   function validateStep1(): boolean {
-    return motorista.trim().length > 0 && inspetor.trim().length > 0 && validatePlaca(placa) && marca.length > 0 && modelo.length > 0
+    return motorista.trim().length > 0 && inspetor.trim().length > 0 && validatePlaca(placa) && quilometragem.length > 0
   }
   function validateStep2(): boolean {
     return step2.every((i) => i.status !== null)
@@ -240,15 +246,27 @@ export default function ChecklistPage() {
 
   function handleNext() {
     if (step === 1 && !validateStep1()) {
-      toast({ title: "Complete os dados obrigatórios.", description: "Verifique placa, motorista, inspetor, marca e modelo.", variant: "destructive" })
+      toast({
+        title: "Complete os dados obrigatórios.",
+        description: "Verifique placa, motorista, inspetor e quilometragem.",
+        variant: "destructive",
+      })
       return
     }
     if (step === 2 && !validateStep2()) {
-      toast({ title: "Responda todas as verificações.", description: "Selecione um status para cada item da Etapa 2.", variant: "destructive" })
+      toast({
+        title: "Responda todas as verificações.",
+        description: "Selecione um status para cada item da Etapa 2.",
+        variant: "destructive",
+      })
       return
     }
     if (step === 3 && !validateStep3()) {
-      toast({ title: "Requisitos da Etapa 3 não atendidos.", description: "N/A não exige foto; Não conforme exige foto e observação; Conforme exige foto.", variant: "destructive" })
+      toast({
+        title: "Requisitos da Etapa 3 não atendidos.",
+        description: "N/A não exige foto; Não conforme exige foto e observação; Conforme exige foto.",
+        variant: "destructive",
+      })
       return
     }
     setStep((s) => Math.min((s + 1) as Step, 4))
@@ -299,19 +317,30 @@ export default function ChecklistPage() {
     return {
       titulo: "Checklist Basel",
       criadoEm: createdAt,
-      dadosIniciais: { placa, motorista, inspetor, marca, modelo },
-      verificacoes: STEP2_QUESTOES.map((q, i) => ({ titulo: q.titulo, detalhe: q.detalhe, status: step2[i].status, observacoes: step2[i].observacoes || null })),
+      dadosIniciais: { placa, motorista, inspetor, quilometragem },
+      verificacoes: STEP2_QUESTOES.map((q, i) => ({
+        titulo: q.titulo,
+        detalhe: q.detalhe,
+        status: step2[i].status,
+        observacoes: step2[i].observacoes || null,
+      })),
       inspecoes: STEP3_INSPECOES.map((q, i) => ({
         titulo: q.titulo,
         detalhe: q.detalhe,
         status: step3[i].status,
         observacoes: step3[i].observacoes || null,
-        midias: step3[i].midias.map((m) => ({ nome: m.file.name, tipo: m.file.type, tamanho: m.file.size, kind: m.kind, dataUrl: m.dataUrl })),
+        midias: step3[i].midias.map((m) => ({
+          nome: m.file.name,
+          tipo: m.file.type,
+          tamanho: m.file.size,
+          kind: m.kind,
+          dataUrl: m.dataUrl,
+        })),
       })),
       completo: validateChecklist(),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placa, motorista, inspetor, marca, modelo, createdAt, step2, step3])
+  }, [placa, motorista, inspetor, quilometragem, createdAt, step2, step3])
 
   function generateId() {
     return Math.random().toString(36).slice(2, 10)
@@ -356,72 +385,91 @@ export default function ChecklistPage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl p-4 min-h-[100svh]" style={{ paddingBottom: "max(env(safe-area-inset-bottom), 5rem)" }}>
+    <main
+      className="mx-auto w-full max-w-3xl p-4 min-h-[100svh]"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 5rem)" }}
+    >
       <div className="mb-4 flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">Checklist Basel</h1>
           <p className="text-xs text-zinc-500">Mobile-first • Interface moderna e profissional</p>
         </div>
         <div className="hidden sm:flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{createdAt || "—"}</Badge>
+          <Badge variant="secondary" className="text-xs">
+            {createdAt || "—"}
+          </Badge>
         </div>
       </div>
 
-      <div className="mb-3"><StepIndicator step={step} /></div>
+      <div className="mb-3">
+        <StepIndicator step={step} />
+      </div>
 
       <div className="mb-4">
         <Progress value={overallProgress} className="h-2" />
-        <div className="mt-1 text-[10px] text-zinc-500">{answeredCount} de {totalItems} itens completos</div>
+        <div className="mt-1 text-[10px] text-zinc-500">
+          {answeredCount} de {totalItems} itens completos
+        </div>
       </div>
 
       {step === 1 && (
         <Card className="border-zinc-200">
-          <CardHeader><CardTitle className="text-base">Etapa 1: Dados iniciais</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Etapa 1: Dados iniciais</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="placa">Placa do veículo</Label>
-                <Input id="placa" inputMode="text" autoCapitalize="characters" placeholder="AAA-0000 ou ABC1234"
-                  value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())}
-                  className={cx(!placa || validatePlaca(placa) ? "" : "border-rose-500")} />
-                {!!placa && !validatePlaca(placa) && <p className="text-xs text-rose-600">Formato inválido. Use AAA-0000 ou ABC1234.</p>}
+                <Input
+                  id="placa"
+                  inputMode="text"
+                  autoCapitalize="characters"
+                  placeholder="AAA-0000 ou ABC1234"
+                  value={placa}
+                  onChange={(e) => setPlaca(e.target.value.toUpperCase())}
+                  className={cx(!placa || validatePlaca(placa) ? "" : "border-rose-500")}
+                />
+                {!!placa && !validatePlaca(placa) && (
+                  <p className="text-xs text-rose-600">Formato inválido. Use AAA-0000 ou ABC1234.</p>
+                )}
               </div>
 
               <div className="grid gap-1.5">
                 <Label htmlFor="motorista">Nome do motorista</Label>
-                <Input id="motorista" placeholder="Digite o nome" value={motorista} onChange={(e) => setMotorista(e.target.value)} />
+                <Input
+                  id="motorista"
+                  placeholder="Digite o nome"
+                  value={motorista}
+                  onChange={(e) => setMotorista(e.target.value)}
+                />
               </div>
 
               <div className="grid gap-1.5">
-                <Label htmlFor="inspetor">Inspetor</Label>
-                <Input id="inspetor" placeholder="Digite o nome" value={inspetor} onChange={(e) => setInspetor(e.target.value)} />
+                <Label htmlFor="inspetor">Nome do vistoriador/inspetor</Label>
+                <Input
+                  id="inspetor"
+                  placeholder="Digite o nome"
+                  value={inspetor}
+                  onChange={(e) => setInspetor(e.target.value)}
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="grid gap-1.5">
-                  <Label>Marca do veículo</Label>
-                  <Select value={marca} onValueChange={setMarca}>
-                    <SelectTrigger><SelectValue placeholder="Selecione a marca" /></SelectTrigger>
-                    <SelectContent>
-                      {MARCAS.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-1.5">
-                  <Label>Modelo</Label>
-                  <Select value={modelo} onValueChange={setModelo}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o modelo" /></SelectTrigger>
-                    <SelectContent>
-                      {MODELOS.map((m) => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="quilometragem">Quilometragem inicial</Label>
+                <Input
+                  id="quilometragem"
+                  type="number"
+                  placeholder="Digite a quilometragem"
+                  value={quilometragem}
+                  onChange={(e) => setQuilometragem(e.target.value)}
+                />
               </div>
 
               <div className="grid gap-1.5">
                 <Label htmlFor="data">Data e hora</Label>
                 <Input id="data" value={createdAt} readOnly />
-                <p className="text-[10px] text-zinc-500">Gerado automaticamente. Formato: dd-mm-yyyy  HH:mm:ss</p>
+                <p className="text-[10px] text-zinc-500">Gerado automaticamente. Formato: dd-mm-yyyy HH:mm:ss</p>
               </div>
             </div>
           </CardContent>
@@ -430,12 +478,18 @@ export default function ChecklistPage() {
 
       {step === 2 && (
         <Card className="border-zinc-200">
-          <CardHeader><CardTitle className="text-base">Etapa 2: Verificações (9 itens)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Etapa 2: Verificações (9 itens)</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             {STEP2_QUESTOES.map((q, idx) => {
               const a = step2[idx]
               return (
-                <div key={q.titulo} className="rounded-lg border p-3 scroll-mt-24" ref={(el) => (s2Refs.current[idx] = el)}>
+                <div
+                  key={q.titulo}
+                  className="rounded-lg border p-3 scroll-mt-24"
+                  ref={(el) => (s2Refs.current[idx] = el)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-sm font-medium">{q.titulo}</div>
@@ -456,8 +510,12 @@ export default function ChecklistPage() {
                     />
                   </div>
                   <div className="mt-2">
-                    <Label htmlFor={`obs2-${idx}`} className="text-xs">Observações (opcional)</Label>
-                    <Textarea id={`obs2-${idx}`} placeholder="Adicione observações, se necessário"
+                    <Label htmlFor={`obs2-${idx}`} className="text-xs">
+                      Observações (opcional)
+                    </Label>
+                    <Textarea
+                      id={`obs2-${idx}`}
+                      placeholder="Adicione observações, se necessário"
                       value={a.observacoes}
                       onChange={(e) =>
                         setStep2((prev) => {
@@ -484,7 +542,9 @@ export default function ChecklistPage() {
 
       {step === 3 && (
         <Card className="border-zinc-200">
-          <CardHeader><CardTitle className="text-base">Etapa 3: Inspeções detalhadas (somente câmera)</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Etapa 3: Inspeções detalhadas (somente câmera)</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             {STEP3_INSPECOES.map((q, idx) => {
               const a = step3[idx]
@@ -495,7 +555,11 @@ export default function ChecklistPage() {
               const minPhotos = status === "na" ? 0 : 1
 
               return (
-                <div key={q.titulo} className="rounded-lg border p-3 scroll-mt-24" ref={(el) => (s3Refs.current[idx] = el)}>
+                <div
+                  key={q.titulo}
+                  className="rounded-lg border p-3 scroll-mt-24"
+                  ref={(el) => (s3Refs.current[idx] = el)}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="text-sm font-medium">{q.titulo}</div>
@@ -533,7 +597,9 @@ export default function ChecklistPage() {
                       {requiresMedia && (
                         <div className="flex items-center gap-2 text-[11px] text-amber-700">
                           <Info className="h-3.5 w-3.5" />
-                          {status === "nao_conforme" ? "Para 'Não conforme' a foto é obrigatória." : "Para 'Conforme' inclua pelo menos 1 foto."}
+                          {status === "nao_conforme"
+                            ? "Para 'Não conforme' a foto é obrigatória."
+                            : "Para 'Conforme' inclua pelo menos 1 foto."}
                         </div>
                       )}
                     </div>
@@ -572,7 +638,9 @@ export default function ChecklistPage() {
                     </Label>
                     <Textarea
                       id={`obs3-${idx}`}
-                      placeholder={requiresObs ? "Obrigatório para Não conforme" : "Adicione observações, se necessário"}
+                      placeholder={
+                        requiresObs ? "Obrigatório para Não conforme" : "Adicione observações, se necessário"
+                      }
                       value={a.observacoes}
                       onChange={(e) =>
                         setStep3((prev) => {
@@ -581,7 +649,10 @@ export default function ChecklistPage() {
                           return next
                         })
                       }
-                      className={cx("min-h-[72px]", requiresObs && a.observacoes.trim().length === 0 ? "border-rose-500" : "")}
+                      className={cx(
+                        "min-h-[72px]",
+                        requiresObs && a.observacoes.trim().length === 0 ? "border-rose-500" : "",
+                      )}
                     />
                   </div>
 
@@ -590,11 +661,11 @@ export default function ChecklistPage() {
                       <AlertTriangle className="h-4 w-4" />
                       <p className="text-xs">
                         {a.status
-                          ? (a.status === "na"
-                              ? "N/A selecionado: foto opcional."
-                              : a.status === "nao_conforme"
-                                ? "Necessário: pelo menos 1 foto e observação."
-                                : "Necessário: pelo menos 1 foto.")
+                          ? a.status === "na"
+                            ? "N/A selecionado: foto opcional."
+                            : a.status === "nao_conforme"
+                              ? "Necessário: pelo menos 1 foto e observação."
+                              : "Necessário: pelo menos 1 foto."
                           : "Selecione um status para continuar."}
                       </p>
                     </div>
@@ -608,7 +679,9 @@ export default function ChecklistPage() {
 
       {step === 4 && (
         <Card className="border-zinc-200">
-          <CardHeader><CardTitle className="text-base">Etapa 4: Revisão final</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-base">Etapa 4: Revisão final</CardTitle>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-md border">
               <div className="p-3">
@@ -617,16 +690,30 @@ export default function ChecklistPage() {
                 </div>
                 <Separator />
                 <div className="mt-2 grid gap-2 text-xs text-zinc-700">
-                  <div><span className="font-medium">Placa: </span><span>{placa || "—"}</span></div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><span className="font-medium">Motorista: </span><span>{motorista || "—"}</span></div>
-                    <div><span className="font-medium">Inspetor: </span><span>{inspetor || "—"}</span></div>
+                  <div>
+                    <span className="font-medium">Placa: </span>
+                    <span>{placa || "—"}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <div><span className="font-medium">Marca: </span><span>{marca || "—"}</span></div>
-                    <div><span className="font-medium">Modelo: </span><span>{modelo || "—"}</span></div>
+                    <div>
+                      <span className="font-medium">Motorista: </span>
+                      <span>{motorista || "—"}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Inspetor: </span>
+                      <span>{inspetor || "—"}</span>
+                    </div>
                   </div>
-                  <div><span className="font-medium">Criado em: </span><span>{createdAt || "—"}</span></div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="font-medium">Quilometragem inicial: </span>
+                      <span>{quilometragem || "—"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-medium">Criado em: </span>
+                    <span>{createdAt || "—"}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -646,7 +733,8 @@ export default function ChecklistPage() {
                       </div>
                       {step2[i].observacoes && (
                         <div className="mt-1 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
-                          <span className="font-medium">Obs.: </span>{step2[i].observacoes}
+                          <span className="font-medium">Obs.: </span>
+                          {step2[i].observacoes}
                         </div>
                       )}
                     </div>
@@ -667,7 +755,8 @@ export default function ChecklistPage() {
                       </div>
                       {step3[i].observacoes && (
                         <div className="mb-2 rounded bg-zinc-50 p-2 text-[11px] text-zinc-700">
-                          <span className="font-medium">Obs.: </span>{step3[i].observacoes}
+                          <span className="font-medium">Obs.: </span>
+                          {step3[i].observacoes}
                         </div>
                       )}
                       {step3[i].midias.length > 0 ? (
@@ -680,7 +769,9 @@ export default function ChecklistPage() {
                                 className="h-24 w-full object-cover"
                                 crossOrigin="anonymous"
                               />
-                              <div className="absolute left-1 top-1 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] text-white">IMG</div>
+                              <div className="absolute left-1 top-1 rounded-md bg-black/50 px-1.5 py-0.5 text-[10px] text-white">
+                                IMG
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -699,7 +790,9 @@ export default function ChecklistPage() {
             {!validateChecklist() && (
               <div className="flex items-center gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-800">
                 <AlertTriangle className="h-4 w-4" />
-                <p className="text-xs">Checklist incompleto. Regras: N/A sem foto; Não conforme com foto e observação; Conforme com foto.</p>
+                <p className="text-xs">
+                  Checklist incompleto. Regras: N/A sem foto; Não conforme com foto e observação; Conforme com foto.
+                </p>
               </div>
             )}
           </CardContent>
@@ -713,17 +806,16 @@ export default function ChecklistPage() {
               <ChevronLeft className="mr-2 h-4 w-4" /> Voltar
             </Button>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-[11px]">{createdAt || "—"}</Badge>
+              <Badge variant="secondary" className="text-[11px]">
+                {createdAt || "—"}
+              </Badge>
             </div>
             {step < 4 ? (
               <Button onClick={handleNext}>
                 Avançar <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button
-                onClick={concluirChecklist}
-                disabled={!validateChecklist() || isSaving}
-              >
+              <Button onClick={concluirChecklist} disabled={!validateChecklist() || isSaving}>
                 <Check className="mr-2 h-4 w-4" />
                 {isSaving ? "Salvando..." : "Salvar e finalizar"}
               </Button>
@@ -733,7 +825,7 @@ export default function ChecklistPage() {
       </div>
 
       <Link href="/" className="fixed right-4" style={{ bottom: "max(env(safe-area-inset-bottom), 1rem)" }}>
-        <Button variant="outline" className="rounded-full h-12 w-12 p-0 shadow-lg">
+        <Button variant="outline" className="rounded-full h-12 w-12 p-0 shadow-lg bg-transparent">
           <Plus className="h-6 w-6 rotate-45" />
         </Button>
       </Link>
